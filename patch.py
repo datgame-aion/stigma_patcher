@@ -50,12 +50,6 @@ def main() -> None:
 
 
     parser.add_argument(
-        "--sw",
-        action="store_true",
-        help="Applies the Tiamat plate skin onto sw",
-    )
-
-    parser.add_argument(
         "--agent",
         action="store_true",
         help="Applies the Agent GS extend skin onto lannok",
@@ -77,6 +71,12 @@ def main() -> None:
         "--ui",
         action="store_true",
         help="Simplifies the style of the UI",
+    )
+
+    parser.add_argument(
+        "--rospet",
+        action="store_true",
+        help="Adds (new) changes rospet wants",
     )
 
     parser.add_argument(
@@ -208,6 +208,10 @@ def main() -> None:
         "114601240": "PL_IDTiamat01a_foot",  #     Boots     to 114601266
         "111601249": "PL_IDTiamat01a_hand",  #     Gloves    to 111601282
         "112601227": "CH_IDTiamat01a_shoulder",  # Shoulders to 112501244
+        # rest
+        "100000893": "Wing_IDTiamat01a",
+        "115000966": "SW_Cash_Ninja01",
+        "187000050": "SH_cash_buckler02",
     }
 
     for ffff in ["eu", "normal"]:
@@ -245,13 +249,17 @@ def main() -> None:
 
 
 
-            if args.sw:
+            if args.rospet:
                 if id in mapping:  # tiamat
                     mesh = mapping[id]
                     print(id, "changed to", mesh)
                     s.find("mesh").text = mesh
                     s.find("default_color_m").text = "255,255,255"
                     s.find("default_color_f").text = "255,255,255"
+
+                    if id == "187000050":
+                        s.find("default_color_m").text = "76,147,225"
+                        s.find("default_color_f").text = "76,147,225"
 
             if name != None and icon != None and gain_skill1 != None:
                 name = name.text.lower()
