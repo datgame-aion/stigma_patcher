@@ -295,6 +295,10 @@ def main() -> None:
         for folder in [skill_extact_folder, items_extract_folder, eu_items_folder, ui_extract_folder]:
             shutil.rmtree(folder, True)
 
+
+    if args.wings or args.sw:
+        shutil.copytree("./objects", base_path/"objects", dirs_exist_ok=True)
+
     print("overwriting files")
     shutil.copy("./data/items/Items.pak", items_pak)
     shutil.copy("./data/europe/items/Items.pak", eu_items_pak)
@@ -302,6 +306,8 @@ def main() -> None:
 
     print("done")
 
+
+from glob import glob
 
 if __name__ == "__main__":
     main()
