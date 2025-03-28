@@ -259,7 +259,7 @@ def main() -> None:
                         s.find("default_color_m").text = "255,255,255"
                         s.find("default_color_f").text = "255,255,255"
 
-                    if id == "187000050":
+                    if id == "115000966":
                         s.find("default_color_m").text = "76,147,225"
                         s.find("default_color_f").text = "76,147,225"
 
