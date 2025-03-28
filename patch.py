@@ -209,9 +209,9 @@ def main() -> None:
         "111601249": "PL_IDTiamat01a_hand",  #     Gloves    to 111601282
         "112601227": "CH_IDTiamat01a_shoulder",  # Shoulders to 112501244
         # rest
-        "100000893": "Wing_IDTiamat01a",
-        "115000966": "SW_Cash_Ninja01",
-        "187000050": "SH_cash_buckler02",
+        "187000050": "Wing_IDTiamat01a",
+        "100000893": "SW_Cash_Ninja01",
+        "115000966": "SH_cash_buckler02",
     }
 
     for ffff in ["eu", "normal"]:
