@@ -11,12 +11,15 @@ given their path with --base-path argument)
 Additional patches are: 
 
 ```
-  --sw                  Applies the Tiamat plate skin onto sw
   --agent               Applies the Agent GS extend skin onto lannok
-  --rospet              Adds (new) changes rospet wants
+  --wings               Applies the Phaistos wings onto Romantic wings
   --white               Makes cavalier plate armor white
   --ui                  Simplifies the style of the UI
+  --rospet              Adds (new) changes rospet wants
 ```
+
+
+
 
 you can undo all patches by running with --undo
 run_all.bat and undo.bat are provided feel free to edit them to change what patches are applied
