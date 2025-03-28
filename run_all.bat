@@ -1,4 +1,4 @@
 @echo off
-uv run patch.py --sw --agent --wings --white --ui 
+uv run patch.py --rospet --agent --wings --white --ui 
 pause
 
