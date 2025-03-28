@@ -13,7 +13,7 @@ Additional patches are:
 ```
   --sw                  Applies the Tiamat plate skin onto sw
   --agent               Applies the Agent GS extend skin onto lannok
-  --wings               Applies the Phaistos wings onto Romantic wings
+  --rospet              Adds (new) changes rospet wants
   --white               Makes cavalier plate armor white
   --ui                  Simplifies the style of the UI
 ```
