@@ -254,8 +254,10 @@ def main() -> None:
                     mesh = mapping[id]
                     print(id, "changed to", mesh)
                     s.find("mesh").text = mesh
-                    s.find("default_color_m").text = "255,255,255"
-                    s.find("default_color_f").text = "255,255,255"
+
+                    if(s.find("default_color_m") is not None):
+                        s.find("default_color_m").text = "255,255,255"
+                        s.find("default_color_f").text = "255,255,255"
 
                     if id == "187000050":
                         s.find("default_color_m").text = "76,147,225"
