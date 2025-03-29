@@ -306,7 +306,7 @@ def main() -> None:
             shutil.rmtree(folder, True)
 
 
-    if args.wings:
+    if args.wings or args.rospet:
         shutil.copytree("./objects", base_path/"objects", dirs_exist_ok=True)
 
     print("overwriting files")
