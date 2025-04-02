@@ -34,6 +34,16 @@ def check_patched(f1: Path, f2: Path):
             == hashlib.file_digest(f2, "sha256").hexdigest()
         )
 
+from typing import Optional
+class MyArgs(argparse.Namespace):
+    undo: bool
+    agent: bool
+    wings: bool
+    white: bool
+    ui: bool
+    rospet: bool
+    no_cleanup: bool
+    base_path: Optional[str]
 
 def main() -> None:
 
@@ -91,7 +101,7 @@ def main() -> None:
         default=None,
         help="Base path where the patch should be applied or undone (default: None)",
     )
-    args = parser.parse_args()
+    args = parser.parse_args(namespace=MyArgs())
 
     base_path = (
         Path(get_install_location()) if args.base_path is None else Path(args.base_path)
@@ -316,8 +326,6 @@ def main() -> None:
 
     print("done")
 
-
-from glob import glob
 
 if __name__ == "__main__":
     main()
