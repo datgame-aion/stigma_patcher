@@ -1,7 +1,7 @@
 ![Example Image](./example.png)
 
 # Installation
-The script uses https://github.com/astral-sh/uv to manage the python Installation and dependencies, so follow its step to install 
+The script uses https://github.com/astral-sh/uv to manage the python Installation and dependencies, a somewhat recent version at the timne of writing is included for convenience, and thus it should run without any Installation
 
 # Function
 
