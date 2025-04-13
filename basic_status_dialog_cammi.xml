@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Dialog h_pos_align="left" flag="visible;movable" type="dlg_basic_status" frame="4,5,384,102" last_modified="18.11.2024 23:51:06" preset="v3_hud_char" name="basic_status_dialog" v_pos_align="top">
+  <Widget type="3dview" camtable="portrait" flag="transparent" frame="-70,-100,150,350" name="portrait">
+    <Skin name="basic_status_char_mask" state="back">
+    </Skin>
+  </Widget>
+  <Widget type="static" font_size="12" font="v3_level" halign="center" frame="90,41,20,20" valign="middle" name="level" text_shade="False">
+  </Widget>
+  <Widget frame="111,33,240,17" name="hp_gauge_bg" font="button" stage="2" type="gauge" preset="v3_hp_gauge_bg" align="left" clock="True" skin_extend="False" state_depended="True" gauge_adjust="0,0">
+  </Widget>
+  <Widget gauge_adjust="0,0" type="gauge" preset="v3_hp_gauge" name="hp_gauge" align="left" skin_extend="False" stage="2" clock="True" state_depended="True" frame="111,33,240,17" font="button">
+  </Widget>
+  <Widget clock="True" align="left" type="gauge" skin_extend="False" font="button" preset="v3_sp_gauge_bg" frame="111,51,240,17" name="sp_gauge_bg" gauge_adjust="0,0">
+  </Widget>
+  <Widget frame="111,51,240,17" gauge_adjust="0,0" type="gauge" stage="2" align="left" clock="True" font="button" preset="v3_sp_gauge" skin_extend="False" name="sp_gauge">
+  </Widget>
+  <Widget skin_extend="False" clock="True" align="left" font="button" name="ep_gauge_bg" frame="111,51,240,17" gauge_adjust="0,0" preset="v3_ep_gauge_bg" type="gauge">
+  </Widget>
+  <Widget type="gauge" font="button" skin_extend="False" frame="111,51,240,17" clock="True" preset="v3_ep_gauge" gauge_adjust="0,0" align="left" stage="2" name="ep_gauge">
+  </Widget>
+  <Widget stage="2" type="gauge" gauge_adjust="0,0" align="left" font="button" clock="True" state_depended="True" frame="111,51,240,17" name="mp_gauge_bg" preset="v3_mp_gauge_bg" skin_extend="False">
+  </Widget>
+  <Widget preset="v3_mp_gauge" font="button" gauge_adjust="0,0" skin_extend="False" name="mp_gauge" align="left" clock="True" stage="2" state_depended="True" type="gauge" frame="111,51,240,17">
+  </Widget>
+  <Widget type="gauge" font="button" align="left" clock="True" frame="104,73,261,7" name="dp_gauge_1" skin_extend="False" gauge_adjust="0,0">
+    <Skin main_state="0" name="v3_gauge_green" sub_state="gauge">
+    </Skin>
+  </Widget>
+  <Widget align="left" frame="104,73,261,7" name="dp_gauge_2" type="gauge" clock="True" font="button" skin_extend="False" gauge_adjust="0,0">
+    <Skin sub_state="gauge" main_state="0" name="v3_gauge_yel">
+    </Skin>
+  </Widget>
+  <Widget align="left" frame="104,73,261,7" clock="True" gauge_adjust="0,0" font="button" name="dp_gauge_3" type="gauge" skin_extend="False">
+    <Skin sub_state="gauge" main_state="0" name="v3_gauge_orange">
+    </Skin>
+  </Widget>
+  <Widget clock="True" font="button" frame="189,82,170,14" align="left" font_size="13" gauge_adjust="-1,-1" name="dp_gauge_text" skin_extend="False" type="gauge">
+  </Widget>
+  <Widget name="leader_marker" frame="56,-1,22,15" flag="not_visible" type="image">
+    <Skin state="0" name="v3_force_leader">
+    </Skin>
+  </Widget>
+  <Widget flag="not_visible" type="image" name="vice_leader_marker" frame="56,-1,22,15">
+    <Skin state="0" name="v3_force_viceleader">
+    </Skin>
+  </Widget>
+  <Widget name="boost_marker" frame="338,34,33,33" type="image">
+    <Skin name="v3_combat_marker">
+    </Skin>
+  </Widget>
+  <Widget type="image" name="dp_level" frame="129,82,28,14">
+    <Skin name="v3_dp_level_1" state="1">
+    </Skin>
+    <Skin name="v3_dp_level_2" state="2">
+    </Skin>
+    <Skin state="3" name="v3_dp_level_3">
+    </Skin>
+  </Widget>
+  <Widget frame="103,82,22,14" type="image">
+    <Skin name="v3_hud_dp">
+    </Skin>
+  </Widget>
+</Dialog>
