@@ -15,10 +15,10 @@ import subprocess
 import winreg
 
 BIG_UI = [
-'<Skin name="v3_hud_target_normal_start" texture="textures/ui/v3_hud_01" src_image="4,495,100,84"></Skin>',
-'<Skin name="v3_hud_target_elite_start" texture="textures/ui/v3_hud_01" src_image="4,409,100,84"></Skin>',
-'<Skin name="v3_hud_target_elite_start" texture="textures/ui/v3_hud_01" src_image="4,409,100,84"></Skin>',
-'<Skin name="v3_hud_target_hero_mod" src_image="104,324,381,84" texture="textures/ui/v3_hud_01"></Skin>',
+    '<Skin name="v3_hud_target_normal_start" texture="textures/ui/v3_hud_01" src_image="4,495,100,84"></Skin>',
+    '<Skin name="v3_hud_target_elite_start" texture="textures/ui/v3_hud_01" src_image="4,409,100,84"></Skin>',
+    '<Skin name="v3_hud_target_elite_start" texture="textures/ui/v3_hud_01" src_image="4,409,100,84"></Skin>',
+    '<Skin name="v3_hud_target_hero_mod" src_image="104,324,381,84" texture="textures/ui/v3_hud_01"></Skin>',
 ]
 
 
@@ -41,7 +41,10 @@ def check_patched(f1: Path, f2: Path):
             == hashlib.file_digest(f2, "sha256").hexdigest()
         )
 
+
 from typing import Optional
+
+
 class MyArgs(argparse.Namespace):
     undo: bool
     agent: bool
@@ -55,6 +58,60 @@ class MyArgs(argparse.Namespace):
     base_path: Optional[str]
     ui_big: bool
     lang: Optional[str]
+    lucky: bool
+    no_stigma: bool
+
+
+from dataclasses import dataclass, field
+
+
+@dataclass
+class PakFile:
+    game_loc: str
+    cache_loc: str
+    extract_loc: str
+    patched_loc: Optional[str]
+    required: bool
+    args: list[str] = field(default_factory=lambda: [])
+
+    def cp(self, undo: bool):
+        Path(self.extract_loc).mkdir(parents=True, exist_ok=True)
+        if self.patched_loc is not None:
+            Path(self.patched_loc).parent.mkdir(parents=True, exist_ok=True)
+
+            if check_patched(Path(self.game_loc), Path(self.patched_loc)):
+                shutil.copy(self.cache_loc, self.game_loc)
+                if undo:
+                    return
+
+        shutil.copyfile(self.game_loc, self.cache_loc)
+
+    def extract(self):
+        if not self.required:
+            return
+        return Popen(
+            [
+                "./pak2folder.exe",
+                str(Path(self.cache_loc).resolve()),
+                str(Path(self.extract_loc).resolve()),
+            ]
+            + self.args,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+        )
+
+    def get_extract(self):
+        return Path(self.extract_loc).resolve()
+
+    def make_zip(self, patch: bool):
+        if not self.required:
+            return
+        shutil.make_archive(Path(self.patched_loc), "zip", self.extract_loc)
+        shutil.move(self.patched_loc + ".zip", Path(self.patched_loc))
+
+        if patch:
+            shutil.copy(self.patched_loc, self.game_loc)
+
 
 def main() -> None:
 
@@ -68,7 +125,6 @@ def main() -> None:
         action="store_true",
         help="Undo the applied patch instead of applying it",
     )
-
 
     parser.add_argument(
         "--agent",
@@ -119,6 +175,18 @@ def main() -> None:
     )
 
     parser.add_argument(
+        "--no-stigma",
+        action="store_true",
+        help="Does not patch stigma",
+    )
+
+    parser.add_argument(
+        "--lucky",
+        action="store_true",
+        help="makes you lucky in solo crucible",
+    )
+
+    parser.add_argument(
         "--base-path",
         type=str,
         default=None,
@@ -144,238 +212,259 @@ def main() -> None:
         Path(get_install_location()) if args.base_path is None else Path(args.base_path)
     )
     data_path = base_path / "data"
-    skills_pak = data_path / "skills/skills.pak"
-    items_pak = data_path / "items/items.pak"
-    eu_items_pak = data_path / "europe/Items/Items.pak"
-    ui_pak =  base_path / "Textures" / "UI" / "UI.pak"
-    l10n_pak =  base_path / "l10n" / args.lang / "Data" / "Data.pak"
 
-    skill_extact_folder = Path("./pak/skills").resolve()
-    ui_extract_folder = Path("./pak/ui").resolve()
-    l10n_extract_folder = Path("./pak/l10n").resolve()
-    items_extract_folder = Path("./pak/items").resolve()
-    eu_items_folder = Path("./pak/eu_items").resolve()
+    f_skill_pak = PakFile(
+        data_path / "skills/skills.pak", "./pak/skills.pak", "./pak/skills", None, required=True
+    )
 
-    skill_extact_folder.mkdir(parents=True, exist_ok=True)
-    items_extract_folder.mkdir(parents=True, exist_ok=True)
-    eu_items_folder.mkdir(parents=True, exist_ok=True)
-    ui_extract_folder.mkdir(parents=True, exist_ok=True)
-    l10n_extract_folder.mkdir(parents=True, exist_ok=True)
+    f_item_pak = PakFile(
+        data_path / "items/items.pak",
+        "./pak/items.pak",
+        "./pak/items",
+        "./patched/data/items/Items.pak",
+        required=not args.no_stigma
+        or args.agent
+        or args.wings
+        or args.white
+        or args.rospet
+        or args.madnez,
+    )
+    f_eu_item_pak = PakFile(
+        data_path / "europe/Items/Items.pak",
+        "./pak/eu_items.pak",
+        "./pak/eu_items",
+        "./patched/data/europe/items/Items.pak",
+        required=not args.no_stigma
+        or args.agent
+        or args.wings
+        or args.white
+        or args.rospet
+        or args.madnez,
+    )
+    f_ui_pak = PakFile(
+        base_path / "Textures" / "UI" / "UI.pak",
+        "./pak/ui.pak",
+        "./pak/ui",
+        "./patched/Textures/UI/UI.pak",
+        required=args.ui | args.ui_big | args.cammi,
+        args=["--xml-no-decode"],
+    )
+    f_eu_npc_pak = PakFile(
+        base_path / "data" / "europe" / "npcs" / "npcs.pak",
+        "./pak/npcs.pak",
+        "./pak/npcs",
+        "./patched/data/europe/npcs/npcs.pak",
+        required=args.lucky,
+        args=["--utf16"],
+    )
+    f_npc_pak = PakFile(
+        base_path / "data" / "npcs" / "npcs.pak",
+        "./pak/eu_npcs.pak",
+        "./pak/eu_npcs",
+        "./patched/data/npcs/npcs.pak",
+        required=args.lucky,
+        args=["--utf16"],
+    )
+    f_l10n_pak = PakFile(
+        base_path / "l10n" / args.lang / "Data" / "Data.pak",
+        "./pak/l10n.pak",
+        "./pak/l10n",
+        f"./patched/l10n/{args.lang}/Data/Data.pak",
+        required=args.ui | args.ui_big | args.cammi,
+        args=["--utf16"],
+    )
 
-    skill_pak_final = Path("./pak/skills.pak").resolve()
-    items_pak_final = Path("./pak/items.pak").resolve()
-    eu_items_pak_final = Path("./pak/eu_items.pak").resolve()
-    ui_pak_final = Path("./pak/ui.pak").resolve()
-    l10n_pak_final = Path("./pak/l10n.pak").resolve()
+    paks = [
+        f_skill_pak,
+        f_item_pak,
+        f_eu_item_pak,
+        f_ui_pak,
+        f_eu_npc_pak,
+        f_npc_pak,
+        f_l10n_pak,
+    ]
 
+    procs: list[Optional[Popen]] = []
 
-    shutil.copyfile(skills_pak, skill_pak_final)
-    if check_patched(items_pak, Path("./data/items/Items.pak")):
-        if args.undo:
-            shutil.copy(items_pak_final, items_pak)
-    else:
-        shutil.copyfile(items_pak, items_pak_final)
+    if not args.undo:
+        print("extracting pak files")
 
-    if check_patched(eu_items_pak, Path("./data/europe/items/Items.pak")):
-        if args.undo:
-            shutil.copy(eu_items_pak_final, eu_items_pak)
-    else:
-        shutil.copyfile(eu_items_pak, eu_items_pak_final)
-
-
-    if check_patched(ui_pak, Path("Textures/UI/UI.pak")):
-        if args.undo:
-            shutil.copy(ui_pak_final, ui_pak)
-    else:
-        shutil.copyfile(ui_pak, ui_pak_final)
-
-    if check_patched(l10n_pak, Path(f"l10n/{args.lang}/Data/Data.pak")):
-        if args.undo:
-            shutil.copy(l10n_pak_final, l10n_pak)
-    else:
-        shutil.copyfile(l10n_pak, l10n_pak_final)
+    for pak in paks:
+        pak.cp(args.undo)
+        if not args.undo:
+            procs.append(pak.extract())
 
     if args.undo:
         print("undoing patch")
         return
 
-    pak = [
-        (skill_pak_final, skill_extact_folder),
-        (items_pak_final, items_extract_folder),
-        (eu_items_pak_final, eu_items_folder),
-    ]
-
-    procs: list[Popen] = []
-
-    print("extracting pak files")
-    for file, folder in pak:
-        file = str(file.resolve())
-        folder = str(folder.resolve())
-
-        procs.append(
-            Popen(
-                ["./pak2folder.exe", file, folder],
-                stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE,
-            )
-        )
-
-    procs.append(
-        Popen(
-            ["./pak2folder.exe", str(ui_pak_final.resolve()), str(ui_extract_folder.resolve()), "--xml-no-decode"],
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-        )
-    )
-
-    procs.append(
-        Popen(
-            ["./pak2folder.exe", str(l10n_pak_final.resolve()), str(l10n_extract_folder.resolve()), "--utf16"],
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-        )
-    )
-
     for proc in procs:
-        proc.wait()
+        if proc is not None:
+            proc.wait()
 
     print("Done extracting pak files")
-
-    skill_tree = etree.parse("./pak/skills/client_skills.xml", None)
-    root_skill = skill_tree.getroot()
-
-    item_tree = etree.parse("./pak/items/client_items.xml", None)
-    root_item = item_tree.getroot()
-
-    item_tree_eu = etree.parse("./pak/eu_items/client_items.xml", None)
-    root_item_eu = item_tree_eu.getroot()
 
     skill_map = {}
 
     skills = set()
 
-    for s in root_skill:
-        name = s.find("name")
-        icon = s.find("skillicon_name")
+    patch_stigma = not args.no_stigma
 
-        if name != None and icon != None:
-            skill_map[name.text.lower()] = icon.text.removesuffix(".dds")
+    if (
+        patch_stigma
+        or args.agent
+        or args.wings
+        or args.white
+        or args.rospet
+        or args.madnez
+    ):
 
-    mapping = {
-        "110600968": "PL_IDTiamat01a_body",  #     Chest     to 110601317
-        "113600931": "PL_IDTiamat01a_leg",  #      Pants     to 113601271
-        "114600926": "PL_IDTiamat01a_foot",  #     Boots     to 114601266
-        "111600947": "PL_IDTiamat01a_hand",  #     Gloves    to 111601282
-        "112600922": "CH_IDTiamat01a_shoulder",  # Shoulders to 112501244
-        # supply
-        "110601284": "PL_IDTiamat01a_body",  #     Chest     to 110601317
-        "113601240": "PL_IDTiamat01a_leg",  #      Pants     to 113601271
-        "114601240": "PL_IDTiamat01a_foot",  #     Boots     to 114601266
-        "111601249": "PL_IDTiamat01a_hand",  #     Gloves    to 111601282
-        "112601227": "CH_IDTiamat01a_shoulder",  # Shoulders to 112501244
-        # rest
-        "187000050": "Wing_IDTiamat01a",
-        "100000893": "SW_Cash_Ninja01",
-        "115000966": "SH_cash_buckler02",
-    }
+        skill_tree = etree.parse(f_skill_pak.get_extract() / "client_skills.xml", None)
+        root_skill = skill_tree.getroot()
 
-    for ffff in ["eu", "normal"]:
-        eu = ffff == "eu"
-        rr = root_item_eu if eu else root_item
-        for s in rr:
+        item_tree = etree.parse(f_item_pak.get_extract() / "client_items.xml", None)
+        root_item = item_tree.getroot()
+
+        item_tree_eu = etree.parse(
+            f_eu_item_pak.get_extract() / "client_items.xml", None
+        )
+        root_item_eu = item_tree_eu.getroot()
+        for s in root_skill:
             name = s.find("name")
-            id = s.find("id").text.lower()
-            icon = s.find("icon_name")
-            gain_skill1 = s.find("gain_skill1")
+            icon = s.find("skillicon_name")
 
+            if name != None and icon != None:
+                if patch_stigma:
+                    skill_map[name.text.lower()] = icon.text.removesuffix(".dds")
 
+        mapping = {
+            "110600968": "PL_IDTiamat01a_body",  #     Chest     to 110601317
+            "113600931": "PL_IDTiamat01a_leg",  #      Pants     to 113601271
+            "114600926": "PL_IDTiamat01a_foot",  #     Boots     to 114601266
+            "111600947": "PL_IDTiamat01a_hand",  #     Gloves    to 111601282
+            "112600922": "CH_IDTiamat01a_shoulder",  # Shoulders to 112501244
+            # supply
+            "110601284": "PL_IDTiamat01a_body",  #     Chest     to 110601317
+            "113601240": "PL_IDTiamat01a_leg",  #      Pants     to 113601271
+            "114601240": "PL_IDTiamat01a_foot",  #     Boots     to 114601266
+            "111601249": "PL_IDTiamat01a_hand",  #     Gloves    to 111601282
+            "112601227": "CH_IDTiamat01a_shoulder",  # Shoulders to 112501244
+            # rest
+            "187000050": "Wing_IDTiamat01a",
+            "100000893": "SW_Cash_Ninja01",
+            "115000966": "SH_cash_buckler02",
+        }
 
+        for ffff in ["eu", "normal"]:
+            eu = ffff == "eu"
+            rr = root_item_eu if eu else root_item
+            for s in rr:
+                name = s.find("name")
+                id = s.find("id").text.lower()
+                icon = s.find("icon_name")
+                gain_skill1 = s.find("gain_skill1")
 
-            # rospet armor to white
-            if args.white:
-                if id in ["110601305", "111601272", "113601261", "114601261", "112601248"]:
-                    print("changed armor to white")
-                    s.find("default_color_m").text = "255,255,255"
-                    s.find("default_color_f").text = "255,255,255"
-
-
-            if args.agent:
-                if id in [
-                    "100900571",
-                ]:  # rospet lannok to agent extend
-                    s.find("mesh").text = "TS_U011"
-
-
-            if args.wings:
-                if id in [
-                    "187050017",
-                ]:  # test Romantic Wings to beritra
-                    s.find("mesh").text = "Wing_IDVritra02a"
-
-            if args.madnez:
-                if id in [
-                    "100900570",
-                ]:  # trioran gs to https://aioncodex.com/5x/item/100901098/
-                    s.find("mesh").text = "TS_IDTiamat01d"
-
-                if id in [
-                    "unsure",
-                ]:  # some gs to https://aioncodex.com/5x/item/100900934/
-                    s.find("mesh").text = "TS_D04a"
-
-
-            if args.wings:
-                if id in [
-                    "110101435",
-                ]:  # test cav chest to new skins
-                    pass
-                    #s.find("mesh").text = "CH_GhostWarrior01_body"
-                    #s.find("default_color_m").text = "77,0,0"
-                    #s.find("default_color_f").text = "77,0,0"
-
-
-            if args.rospet:
-                if id in mapping:  # tiamat
-                    mesh = mapping[id]
-                    print(id, "changed to", mesh)
-                    s.find("mesh").text = mesh
-
-                    if(s.find("default_color_m") is not None):
+                # rospet armor to white
+                if args.white:
+                    if id in [
+                        "110601305",
+                        "111601272",
+                        "113601261",
+                        "114601261",
+                        "112601248",
+                    ]:
+                        print("changed armor to white")
                         s.find("default_color_m").text = "255,255,255"
                         s.find("default_color_f").text = "255,255,255"
 
-                    if id == "115000966":
-                        s.find("default_color_m").text = "76,147,225"
-                        s.find("default_color_f").text = "76,147,225"
+                if args.agent:
+                    if id in [
+                        "100900571",
+                    ]:  # rospet lannok to agent extend
+                        s.find("mesh").text = "TS_U011"
 
-            if name != None and icon != None and gain_skill1 != None:
-                name = name.text.lower()
-                gain_skill1 = gain_skill1.text.lower()
+                if args.wings:
+                    if id in [
+                        "187050017",
+                    ]:  # test Romantic Wings to beritra
+                        s.find("mesh").text = "Wing_IDVritra02a"
 
-                new_icon = skill_map.get(gain_skill1)
-                if new_icon != None:
-                    icon.text = new_icon
-                    skills.add(new_icon)
+                if args.madnez:
+                    if id in [
+                        "100900570",
+                    ]:  # trioran gs to https://aioncodex.com/5x/item/100901098/
+                        s.find("mesh").text = "TS_IDTiamat01d"
 
-        it = item_tree_eu if eu else item_tree
+                    if id in [
+                        "unsure",
+                    ]:  # some gs to https://aioncodex.com/5x/item/100900934/
+                        s.find("mesh").text = "TS_D04a"
 
-        final_file_path = (
-            "./pak/eu_items/client_items.xml" if eu else "./pak/items/client_items.xml"
-        )
+                if args.wings:
+                    if id in [
+                        "110101435",
+                    ]:  # test cav chest to new skins
+                        pass
+                        # s.find("mesh").text = "CH_GhostWarrior01_body"
+                        # s.find("default_color_m").text = "77,0,0"
+                        # s.find("default_color_f").text = "77,0,0"
 
-        it.write(final_file_path, encoding="utf-8", xml_declaration=True)
+                if args.rospet:
+                    if id in mapping:  # tiamat
+                        mesh = mapping[id]
+                        print(id, "changed to", mesh)
+                        s.find("mesh").text = mesh
 
-    for skill_icon in skills:
+                        if s.find("default_color_m") is not None:
+                            s.find("default_color_m").text = "255,255,255"
+                            s.find("default_color_f").text = "255,255,255"
 
-        shutil.copyfile(
-            Path("./pak/skills") / (skill_icon + ".dds"),
-            Path("./pak/items") / (skill_icon + ".dds"),
-        )
+                        if id == "115000966":
+                            s.find("default_color_m").text = "76,147,225"
+                            s.find("default_color_f").text = "76,147,225"
+
+                if name != None and icon != None and gain_skill1 != None:
+                    name = name.text.lower()
+                    gain_skill1 = gain_skill1.text.lower()
+
+                    new_icon = skill_map.get(gain_skill1)
+                    if new_icon != None:
+                        icon.text = new_icon
+                        skills.add(new_icon)
+
+            it = item_tree_eu if eu else item_tree
+
+            final_file_path = (
+                f_eu_item_pak.get_extract() / "client_items.xml"
+                if eu
+                else f_item_pak.get_extract() / "client_items.xml"
+            )
+
+            it.write(final_file_path, encoding="utf-8", xml_declaration=True)
+
+        for skill_icon in skills:
+
+            shutil.copyfile(
+                Path("./pak/skills") / (skill_icon + ".dds"),
+                Path("./pak/items") / (skill_icon + ".dds"),
+            )
+
+    if args.lucky:
+        for f in [f_npc_pak.get_extract() / "client_npcs.xml", f_eu_npc_pak.get_extract() / "client_npcs.xml"]:
+            npc_tree = etree.parse(f, None)
+            root_npc = npc_tree.getroot()
+            for s in root_npc:
+                id = s.find("id").text.lower()
+
+                if id in ["217829", "217832", "217835"]:
+                    s.find("scale").text = "400"
+
+            npc_tree.write(f, encoding="utf-8", xml_declaration=True)
 
 
 
     if args.ui_big:
-        fi ="./pak/l10n/ui/preload/hud_s2.xml"
+        fi = "./pak/l10n/ui/preload/hud_s2.xml"
         l10n_tree = etree.parse(fi, None)
         l10n_root = l10n_tree.getroot()
         target_skin = l10n_root.xpath('//Skin[@name="v3_hud_target_legend"]')[0]
@@ -384,28 +473,31 @@ def main() -> None:
             target_skin.addnext(new_skin)
         l10n_tree.write(fi, encoding="utf-8", xml_declaration=True)
 
-        shutil.copy("target_dialog.xml", l10n_extract_folder/"ui"/"game"/"target_dialog.xml")
+        shutil.copy(
+            "target_dialog.xml",
+            Path(f_l10n_pak.extract_loc) / "ui" / "game" / "target_dialog.xml",
+        )
 
     if args.cammi:
-        shutil.copy("basic_status_dialog_cammi.xml", l10n_extract_folder/"ui"/"game_hud_s2"/"basic_status_dialog_cammi.xml")
-        
+        shutil.copy(
+            "basic_status_dialog_cammi.xml",
+            Path(f_l10n_pak.extract_loc)
+            / "ui"
+            / "game_hud_s2"
+            / "basic_status_dialog_cammi.xml",
+        )
 
-    Path("./data/items").mkdir(parents=True, exist_ok=True)
-    Path("./data/europe/Items").mkdir(parents=True, exist_ok=True)
-    Path("./Textures/UI").mkdir(parents=True, exist_ok=True)
-    Path(f"./l10n/{args.lang}/Data").mkdir(parents=True, exist_ok=True)
-    shutil.make_archive("./data/items/Items.pak", "zip", Path("./pak/items"))
-    shutil.move("./data/items/Items.pak.zip", "./data/items/Items.pak")
-
+    if not args.no_stigma:
+        f_item_pak.make_zip(True)
+        f_eu_item_pak.make_zip(True)
 
     if args.ui_big or args.cammi:
-        shutil.make_archive(Path(f"./l10n/{args.lang}/Data/Data.pak"), "zip", l10n_extract_folder)
-        shutil.move(Path(f"./l10n/{args.lang}/Data/Data.pak.zip"), Path(f"./l10n/{args.lang}/Data/Data.pak"))
+        f_l10n_pak.make_zip(True)
 
+    if args.lucky:
+        f_npc_pak.make_zip(True)
+        f_eu_npc_pak.make_zip(True)
 
-
-    shutil.make_archive("./data/europe/Items/Items.pak", "zip", Path("./pak/eu_items"))
-    shutil.move("./data/europe/Items/Items.pak.zip", "./data/europe/items/Items.pak")
     if args.ui:
         shutil.copy("v3_common_01.dds", "./pak/ui/v3_common_01.dds")
 
@@ -415,31 +507,19 @@ def main() -> None:
     if args.cammi:
         shutil.copy("v3_hud_01_cammi.dds", "./pak/ui/v3_hud_01.dds")
 
-
     if args.ui or args.ui_big:
-        shutil.make_archive("./Textures/UI/UI.pak", "zip", Path("./pak/ui"))
-        shutil.move("./Textures/UI/UI.pak.zip", "./Textures/UI/UI.pak")
-
-
-
+        f_ui_pak.make_zip(True)
 
     if not args.no_cleanup:
-        for folder in [skill_extact_folder, items_extract_folder, eu_items_folder, ui_extract_folder, l10n_extract_folder]:
-            shutil.rmtree(folder, True)
-
+        for folder in paks:
+            shutil.rmtree(folder.extract_loc, True)
 
     if args.wings or args.rospet:
-        shutil.copytree("./objects", base_path/"objects", dirs_exist_ok=True)
+        shutil.copytree("./objects", base_path / "objects", dirs_exist_ok=True)
 
-    
+
+
     print("overwriting files")
-    shutil.copy("./data/items/Items.pak", items_pak)
-    shutil.copy("./data/europe/items/Items.pak", eu_items_pak)
-    if args.ui or args.ui_big:
-        shutil.copy("./Textures/UI/UI.pak", ui_pak)
-
-    if args.ui_big:
-        shutil.copy(Path(f"./l10n/{args.lang}/Data/Data.pak"), l10n_pak)
 
     print("done")
 
