@@ -60,6 +60,7 @@ class MyArgs(argparse.Namespace):
     lang: Optional[str]
     lucky: bool
     no_stigma: bool
+    no_cloud: bool
 
 
 from dataclasses import dataclass, field
@@ -160,6 +161,12 @@ def main() -> None:
         "--cammi",
         action="store_true",
         help="Adds (new) changes cammi wants",
+    )
+
+    parser.add_argument(
+        "--no-cloud",
+        action="store_true",
+        help="Removes clouds on Eos map",
     )
 
     parser.add_argument(
@@ -288,6 +295,12 @@ def main() -> None:
 
     if not args.undo:
         print("extracting pak files")
+
+    
+
+    no_cloud_final = base_path/"Effects"/"Effects_Textures2.pak"
+    if (no_cloud_final).exists():
+        no_cloud_final.unlink()
 
     for pak in paks:
         pak.cp(args.undo)
@@ -517,6 +530,9 @@ def main() -> None:
     if args.wings or args.rospet:
         shutil.copytree("./objects", base_path / "objects", dirs_exist_ok=True)
 
+
+    if args.no_cloud:
+        shutil.copy("ihateclouds.pak", no_cloud_final)
 
 
     print("overwriting files")
