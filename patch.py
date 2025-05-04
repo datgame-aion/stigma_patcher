@@ -221,7 +221,11 @@ def main() -> None:
     data_path = base_path / "data"
 
     f_skill_pak = PakFile(
-        data_path / "skills/skills.pak", "./pak/skills.pak", "./pak/skills", None, required=True
+        data_path / "skills/skills.pak",
+        "./pak/skills.pak",
+        "./pak/skills",
+        None,
+        required=True,
     )
 
     f_item_pak = PakFile(
@@ -296,9 +300,7 @@ def main() -> None:
     if not args.undo:
         print("extracting pak files")
 
-    
-
-    no_cloud_final = base_path/"Effects"/"Effects_Textures2.pak"
+    no_cloud_final = base_path / "Effects" / "Effects_Textures2.pak"
     if (no_cloud_final).exists():
         no_cloud_final.unlink()
 
@@ -351,6 +353,13 @@ def main() -> None:
                     skill_map[name.text.lower()] = icon.text.removesuffix(".dds")
 
         mapping = {
+            # pvp
+            "110601343": "PL_IDTiamat01a_body",  #     Chest     to 110601317
+            "113601298": "PL_IDTiamat01a_leg",  #      Pants     to 113601271
+            "114601298": "PL_IDTiamat01a_foot",  #     Boots     to 114601266
+            "111601309": "PL_IDTiamat01a_hand",  #     Gloves    to 111601282
+            "112601285": "CH_IDTiamat01a_shoulder",  # Shoulders to 112501244
+            # sw
             "110600968": "PL_IDTiamat01a_body",  #     Chest     to 110601317
             "113600931": "PL_IDTiamat01a_leg",  #      Pants     to 113601271
             "114600926": "PL_IDTiamat01a_foot",  #     Boots     to 114601266
@@ -363,7 +372,7 @@ def main() -> None:
             "111601249": "PL_IDTiamat01a_hand",  #     Gloves    to 111601282
             "112601227": "CH_IDTiamat01a_shoulder",  # Shoulders to 112501244
             # rest
-            "187000050": "Wing_IDTiamat01a",
+            "187000058": "Wing_IDTiamat01a",
             "100000893": "SW_Cash_Ninja01",
             "115000966": "SH_cash_buckler02",
         }
@@ -463,7 +472,10 @@ def main() -> None:
             )
 
     if args.lucky:
-        for f in [f_npc_pak.get_extract() / "client_npcs.xml", f_eu_npc_pak.get_extract() / "client_npcs.xml"]:
+        for f in [
+            f_npc_pak.get_extract() / "client_npcs.xml",
+            f_eu_npc_pak.get_extract() / "client_npcs.xml",
+        ]:
             npc_tree = etree.parse(f, None)
             root_npc = npc_tree.getroot()
             for s in root_npc:
@@ -473,8 +485,6 @@ def main() -> None:
                     s.find("scale").text = "400"
 
             npc_tree.write(f, encoding="utf-8", xml_declaration=True)
-
-
 
     if args.ui_big:
         fi = "./pak/l10n/ui/preload/hud_s2.xml"
@@ -530,10 +540,8 @@ def main() -> None:
     if args.wings or args.rospet:
         shutil.copytree("./objects", base_path / "objects", dirs_exist_ok=True)
 
-
     if args.no_cloud:
         shutil.copy("ihateclouds.pak", no_cloud_final)
-
 
     print("overwriting files")
 
