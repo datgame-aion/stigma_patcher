@@ -25,7 +25,7 @@ def upload_to_discord(webhook_url, file_path):
             webhook_url,
             files={"file": (os.path.basename(file_path), f, "application/zip")},
         )
-    if response.status_code == 204:
+    if response.ok:
         print("Upload successful.")
     else:
         print(f"Failed to upload. Status code: {response.status_code}, Response: {response.text}")
