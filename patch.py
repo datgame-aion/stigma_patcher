@@ -537,7 +537,7 @@ def main() -> None:
         for folder in paks:
             shutil.rmtree(folder.extract_loc, True)
 
-    if args.wings or args.rospet:
+    if args.wings or args.rospet or args.madnez:
         shutil.copytree("./objects", base_path / "objects", dirs_exist_ok=True)
 
     if args.no_cloud:
