@@ -415,10 +415,10 @@ def main() -> None:
                     if id in [
                         "100900570",
                     ]:  # trioran gs to https://aioncodex.com/5x/item/100901098/
-                        s.find("mesh").text = "TS_IDTiamat01d"
+                        s.find("mesh").text = "TS_U011"
 
                     if id in [
-                        "unsure",
+                        "100901109",
                     ]:  # some gs to https://aioncodex.com/5x/item/100900934/
                         s.find("mesh").text = "TS_D04a"
 
