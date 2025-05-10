@@ -1,7 +1,9 @@
 # /// script
 # requires-python = ">=3.12"
 # dependencies = [
+#     "halo",
 #     "lxml",
+#     "psutil",
 # ]
 # ///
 
@@ -13,6 +15,7 @@ import hashlib
 from subprocess import Popen
 import subprocess
 import winreg
+import psutil
 
 BIG_UI = [
     '<Skin name="v3_hud_target_normal_start" texture="textures/ui/v3_hud_01" src_image="4,495,100,84"></Skin>',
@@ -31,6 +34,15 @@ def get_install_location():
     except FileNotFoundError:
         return None
 
+def is_aion_running():
+    for proc in psutil.process_iter(['name']):
+        try:
+            if proc.info['name'].lower() == 'aion.bin':
+                return True
+        except (psutil.NoSuchProcess, psutil.AccessDenied):
+            continue
+    return False
+
 
 def check_patched(f1: Path, f2: Path):
     if not (f1.exists()) or not (f2.exists()):
@@ -43,12 +55,12 @@ def check_patched(f1: Path, f2: Path):
 
 
 from typing import Optional
-
+from halo import Halo
 
 class MyArgs(argparse.Namespace):
     undo: bool
     agent: bool
-    wings: bool
+    datgame: bool
     white: bool
     ui: bool
     rospet: bool
@@ -115,7 +127,9 @@ class PakFile:
 
 
 def main() -> None:
-
+    if is_aion_running():
+        input("Aion is running, close it, then press enter: ")
+    
     parser = argparse.ArgumentParser(
         description="A script to apply and optionally undo the Stigma patch to aion classic eu\n"
         "(and potentionally other classic servers if given their path with --base-path)"
@@ -134,9 +148,9 @@ def main() -> None:
     )
 
     parser.add_argument(
-        "--wings",
+        "--datgame",
         action="store_true",
-        help="Applies the Phaistos wings onto Romantic wings",
+        help="Applies changes i want",
     )
 
     parser.add_argument(
@@ -235,7 +249,7 @@ def main() -> None:
         "./patched/data/items/Items.pak",
         required=not args.no_stigma
         or args.agent
-        or args.wings
+        or args.datgame
         or args.white
         or args.rospet
         or args.madnez,
@@ -247,7 +261,7 @@ def main() -> None:
         "./patched/data/europe/items/Items.pak",
         required=not args.no_stigma
         or args.agent
-        or args.wings
+        or args.datgame
         or args.white
         or args.rospet
         or args.madnez,
@@ -297,8 +311,6 @@ def main() -> None:
 
     procs: list[Optional[Popen]] = []
 
-    if not args.undo:
-        print("extracting pak files")
 
     no_cloud_final = base_path / "Effects" / "Effects_Textures2.pak"
     if (no_cloud_final).exists():
@@ -313,11 +325,13 @@ def main() -> None:
         print("undoing patch")
         return
 
+    spinner = Halo(text='Extracting pak files')
+    spinner.start()
+
     for proc in procs:
         if proc is not None:
             proc.wait()
 
-    print("Done extracting pak files")
 
     skill_map = {}
 
@@ -328,11 +342,12 @@ def main() -> None:
     if (
         patch_stigma
         or args.agent
-        or args.wings
+        or args.datgame
         or args.white
         or args.rospet
         or args.madnez
     ):
+        spinner.text = "Patching Stigmas and Items"
 
         skill_tree = etree.parse(f_skill_pak.get_extract() / "client_skills.xml", None)
         root_skill = skill_tree.getroot()
@@ -351,6 +366,17 @@ def main() -> None:
             if name != None and icon != None:
                 if patch_stigma:
                     skill_map[name.text.lower()] = icon.text.removesuffix(".dds")
+
+        mapping_datgame = {
+            # pvp
+            "110101481": "RB_A04e_body",  #     Chest     to 110601317
+            "113101369": "RB_A04e_leg",  #      Pants     to 113601271
+            "114101399": "RB_A04e_foot",  #     Boots     to 114601266
+            "111101351": "RB_A04e_hand",  #     Gloves    to 111601282
+            "112101304": "RB_A04e_shoulder",  # Shoulders to 112501244
+            # wings
+            "187000057": "Wing_IDVritra02a"
+        }
 
         mapping = {
             # pvp
@@ -395,7 +421,6 @@ def main() -> None:
                         "114601261",
                         "112601248",
                     ]:
-                        print("changed armor to white")
                         s.find("default_color_m").text = "255,255,255"
                         s.find("default_color_f").text = "255,255,255"
 
@@ -405,11 +430,16 @@ def main() -> None:
                     ]:  # rospet lannok to agent extend
                         s.find("mesh").text = "TS_U011"
 
-                if args.wings:
-                    if id in [
-                        "187050017",
-                    ]:  # test Romantic Wings to beritra
-                        s.find("mesh").text = "Wing_IDVritra02a"
+                if args.datgame:
+                    if id in mapping_datgame:  # test Romantic datgame to beritra
+                        s.find("mesh").text = mapping_datgame[id]
+                        if s.find("default_color_m") is not None:
+                            s.find("default_color_m").text = "0,0,0"
+                            s.find("default_color_f").text = "0,0,0"
+
+                    if id in ["113101326", "111101307", "114101356", "112101263", "110101435"]:
+                        s.find("default_color_f").text = "255,255,255   "
+                        
 
                 if args.madnez:
                     if id in [
@@ -422,7 +452,7 @@ def main() -> None:
                     ]:  # some gs to https://aioncodex.com/5x/item/100900934/
                         s.find("mesh").text = "TS_D04a"
 
-                if args.wings:
+                if args.datgame:
                     if id in [
                         "110101435",
                     ]:  # test cav chest to new skins
@@ -434,7 +464,6 @@ def main() -> None:
                 if args.rospet:
                     if id in mapping:  # tiamat
                         mesh = mapping[id]
-                        print(id, "changed to", mesh)
                         s.find("mesh").text = mesh
 
                         if s.find("default_color_m") is not None:
@@ -471,7 +500,10 @@ def main() -> None:
                 Path("./pak/items") / (skill_icon + ".dds"),
             )
 
+    
+
     if args.lucky:
+        spinner.text = "Patching Npcs"
         for f in [
             f_npc_pak.get_extract() / "client_npcs.xml",
             f_eu_npc_pak.get_extract() / "client_npcs.xml",
@@ -487,6 +519,7 @@ def main() -> None:
             npc_tree.write(f, encoding="utf-8", xml_declaration=True)
 
     if args.ui_big:
+        spinner.text = "Patching Ui"
         fi = "./pak/l10n/ui/preload/hud_s2.xml"
         l10n_tree = etree.parse(fi, None)
         l10n_root = l10n_tree.getroot()
@@ -509,6 +542,8 @@ def main() -> None:
             / "game_hud_s2"
             / "basic_status_dialog_cammi.xml",
         )
+
+    spinner.text = "Done patching, creating Zip files"
 
     if not args.no_stigma:
         f_item_pak.make_zip(True)
@@ -533,19 +568,21 @@ def main() -> None:
     if args.ui or args.ui_big:
         f_ui_pak.make_zip(True)
 
+
+    spinner.text = "Overwriting Aion Files"
     if not args.no_cleanup:
         for folder in paks:
             shutil.rmtree(folder.extract_loc, True)
 
-    if args.wings or args.rospet or args.madnez:
+    if args.datgame or args.rospet or args.madnez:
         shutil.copytree("./objects", base_path / "objects", dirs_exist_ok=True)
 
     if args.no_cloud:
         shutil.copy("ihateclouds.pak", no_cloud_final)
 
-    print("overwriting files")
 
-    print("done")
+    spinner.text = "Done"
+    spinner.stop_and_persist()
 
 
 if __name__ == "__main__":
