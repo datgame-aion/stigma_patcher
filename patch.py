@@ -462,6 +462,9 @@ def main() -> None:
                         # s.find("default_color_f").text = "77,0,0"
 
                 if args.rospet:
+                    if id == "110601343":
+                        s.find("visual_slot").text = "torso"
+
                     if id in mapping:  # tiamat
                         mesh = mapping[id]
                         s.find("mesh").text = mesh
